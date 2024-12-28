@@ -105,23 +105,6 @@ func getEndpoints(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(endpointsJSON))
 }
 
-// Search Na'vi words and return results in natural languages
-func searchWord(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	navi := vars["nav"]
-
-	words, err := fwew.TranslateFromNaviHash(navi, true)
-	if err != nil || len(words) == 0 {
-		var m message
-		m.Message = "no results"
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(m)
-		return
-	}
-
-	json.NewEncoder(w).Encode(words)
-}
-
 // Search natural language words and return Na'vi words
 func searchWordReverse(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
@@ -138,28 +121,6 @@ func searchWordReverse(w http.ResponseWriter, r *http.Request) {
 	}
 
 	json.NewEncoder(w).Encode(words)
-}
-
-// Old endpoint: return a 1d array of words instead of the normal 2d array
-func searchWord1d(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	navi := vars["nav"]
-
-	words, err := fwew.TranslateFromNaviHash(navi, true)
-	if err != nil || len(words) == 0 {
-		var m message
-		m.Message = "no results"
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(m)
-		return
-	}
-
-	oneDWords := []fwew.Word{}
-	for _, a := range words {
-		oneDWords = append(oneDWords, a...)
-	}
-
-	json.NewEncoder(w).Encode(oneDWords)
 }
 
 // Old endpoint: return a 1d array of words instead of the normal 2d array
@@ -183,42 +144,6 @@ func searchWordReverse1d(w http.ResponseWriter, r *http.Request) {
 	}
 
 	json.NewEncoder(w).Encode(oneDWords)
-}
-
-// Search words without checking for productive derivations
-func simpleSearchWord(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	navi := vars["nav"]
-
-	words, err := fwew.TranslateFromNaviHash(navi, false)
-	if err != nil || len(words) == 0 {
-		var m message
-		m.Message = "no results"
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(m)
-		return
-	}
-
-	json.NewEncoder(w).Encode(words)
-}
-
-// Input Na'vi or natural language words for searching
-func searchBidirectional(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	languageCode := vars["lang"]
-	inputWords := vars["words"]
-
-	words, err := fwew.BidirectionalSearch(inputWords, true, languageCode)
-	if err != nil || len(words) == 0 {
-
-		var m message
-		m.Message = "no results"
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(m)
-		return
-	}
-
-	json.NewEncoder(w).Encode(words)
 }
 
 // List all words with specified parameters
@@ -538,24 +463,6 @@ func getMultiwordWords(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(a)
 }
 
-// Get all words with multiple dictionary entries for one spelling
-func getHomonyms(w http.ResponseWriter, r *http.Request) {
-	a, _ := fwew.GetHomonyms()
-	json.NewEncoder(w).Encode(a)
-}
-
-// Get all words which seemingly violate Na'vi phonotactic rules
-func getOddballs(w http.ResponseWriter, r *http.Request) {
-	a, _ := fwew.GetOddballs()
-	json.NewEncoder(w).Encode(a)
-}
-
-// Get all words with more than one pronunciation listed
-func getMultiIPA(w http.ResponseWriter, r *http.Request) {
-	a, _ := fwew.GetMultiIPA()
-	json.NewEncoder(w).Encode(a)
-}
-
 // Get the number of words in the dictionary
 func getDictLenSimple(w http.ResponseWriter, r *http.Request) {
 	a := fwew.GetDictSizeSimple()
@@ -615,17 +522,12 @@ func handleRequests() {
 	myRouter.Use(contentTypeMiddleware)
 
 	myRouter.HandleFunc("/api/", getEndpoints)
-	myRouter.HandleFunc("/api/fwew/{nav}", searchWord)
 	myRouter.HandleFunc("/api/fwew/r/{lang}/{local}", searchWordReverse)
-	myRouter.HandleFunc("/api/fwew-1d/{nav}", searchWord1d)
 	myRouter.HandleFunc("/api/fwew-1d/r/{lang}/{local}", searchWordReverse1d)
-	myRouter.HandleFunc("/api/fwew-simple/{nav}", simpleSearchWord)
-	myRouter.HandleFunc("/api/homonyms", getHomonyms)
 	myRouter.HandleFunc("/api/lenition", getLenitionTable)
 	myRouter.HandleFunc("/api/list", listWords)
 	myRouter.HandleFunc("/api/list/{args}", listWords)
 	myRouter.HandleFunc("/api/list2/{c}/{args}", listWords2)
-	myRouter.HandleFunc("/api/multi-ipa", getMultiIPA)
 	myRouter.HandleFunc("/api/multiwordwords", getMultiwordWords)
 	myRouter.HandleFunc("/api/name/alu/{n}/{s}/{nm}/{am}/{dialect}", getNameAlu)
 	myRouter.HandleFunc("/api/name/full/{ending}/{n}/{s1}/{s2}/{s3}/{dialect}", getFullNames)
@@ -633,7 +535,6 @@ func handleRequests() {
 	myRouter.HandleFunc("/api/name/single/{n}/{s}/{dialect}", getSingleNames)
 	myRouter.HandleFunc("/api/number/{word}", searchNumber)
 	myRouter.HandleFunc("/api/number/r/{num}", searchNumberReverse)
-	myRouter.HandleFunc("/api/oddballs", getOddballs)
 	myRouter.HandleFunc("/api/phonemedistros", getPhonemeDistrosEN)
 	myRouter.HandleFunc("/api/phonemedistros/{lang}", getPhonemeDistros)
 	myRouter.HandleFunc("/api/random/{n}", getRandomWords)
@@ -641,7 +542,6 @@ func handleRequests() {
 	myRouter.HandleFunc("/api/random2/{n}/{c}", getRandomWords2)
 	myRouter.HandleFunc("/api/random2/{n}/{c}/{args}", getRandomWords2)
 	myRouter.HandleFunc("/api/reef/{i}", getReefFromIpa)
-	myRouter.HandleFunc("/api/search/{lang}/{words}", searchBidirectional)
 	myRouter.HandleFunc("/api/total-words", getDictLenSimple)
 	myRouter.HandleFunc("/api/total-words/{lang}", getDictLen)
 	myRouter.HandleFunc("/api/update", update)
