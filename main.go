@@ -105,47 +105,6 @@ func getEndpoints(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(endpointsJSON))
 }
 
-// Search natural language words and return Na'vi words
-func searchWordReverse(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	languageCode := vars["lang"]
-	localized := vars["local"]
-
-	words := fwew.TranslateToNaviHash(localized, languageCode)
-	if len(words) == 0 {
-		var m message
-		m.Message = "no results"
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(m)
-		return
-	}
-
-	json.NewEncoder(w).Encode(words)
-}
-
-// Old endpoint: return a 1d array of words instead of the normal 2d array
-func searchWordReverse1d(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	languageCode := vars["lang"]
-	localized := vars["local"]
-
-	words := fwew.TranslateToNaviHash(localized, languageCode)
-	if len(words) == 0 {
-		var m message
-		m.Message = "no results"
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(m)
-		return
-	}
-
-	oneDWords := []fwew.Word{}
-	for _, a := range words {
-		oneDWords = append(oneDWords, a...)
-	}
-
-	json.NewEncoder(w).Encode(oneDWords)
-}
-
 // List all words with specified parameters
 func listWords(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
@@ -522,8 +481,6 @@ func handleRequests() {
 	myRouter.Use(contentTypeMiddleware)
 
 	myRouter.HandleFunc("/api/", getEndpoints)
-	myRouter.HandleFunc("/api/fwew/r/{lang}/{local}", searchWordReverse)
-	myRouter.HandleFunc("/api/fwew-1d/r/{lang}/{local}", searchWordReverse1d)
 	myRouter.HandleFunc("/api/lenition", getLenitionTable)
 	myRouter.HandleFunc("/api/list", listWords)
 	myRouter.HandleFunc("/api/list/{args}", listWords)
